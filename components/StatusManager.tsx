@@ -39,8 +39,6 @@ import {
   Trash2,
   Check,
   X,
-  ArrowUp,
-  ArrowDown,
   ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";

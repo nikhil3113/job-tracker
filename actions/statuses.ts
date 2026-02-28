@@ -4,6 +4,19 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { DEFAULT_STATUSES, getColorByIndex } from "@/lib/status-colors";
+import { z } from "zod";
+
+// --- Validation Schemas ---
+
+const createStatusSchema = z.object({
+  name: z.string().min(1).max(50).trim(),
+  label: z.string().min(1).max(50).trim(),
+});
+
+const updateStatusSchema = z.object({
+  label: z.string().min(1).max(50).trim().optional(),
+  name: z.string().min(1).max(50).trim().optional(),
+});
 
 /**
  * Ensures the current user has statuses.
@@ -84,16 +97,17 @@ export async function getStatuses() {
 }
 
 /** Creates a new custom status for the current user. */
-export async function createStatus(data: { name: string; label: string }) {
+export async function createStatus(input: { name: string; label: string }) {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
 
+  const data = createStatusSchema.parse(input);
   const userId = session.user.id;
 
   // Normalize the name: uppercase, replace spaces with underscores
-  const name = data.name.trim().toUpperCase().replace(/\s+/g, "_");
+  const name = data.name.toUpperCase().replace(/\s+/g, "_");
 
   if (!name) {
     throw new Error("Status name is required");
@@ -142,12 +156,14 @@ export async function createStatus(data: { name: string; label: string }) {
 /** Updates an existing status (label only — name is the stable key). */
 export async function updateStatus(
   id: string,
-  data: { label?: string; name?: string }
+  input: { label?: string; name?: string }
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
+
+  const data = updateStatusSchema.parse(input);
 
   // Verify ownership
   const existing = await prisma.status.findFirst({
@@ -235,7 +251,7 @@ export async function deleteStatus(id: string) {
     throw new Error("You must have at least one status");
   }
 
-  await prisma.status.delete({ where: { id } });
+  await prisma.status.deleteMany({ where: { id, userId: session.user.id } });
 
   // Re-order remaining statuses to close gaps
   const remaining = await prisma.status.findMany({
@@ -260,10 +276,22 @@ export async function reorderStatuses(orderedIds: string[]) {
     throw new Error("Unauthorized");
   }
 
+  const userId = session.user.id;
+
+  // Verify all status IDs belong to the current user
+  const ownedStatuses = await prisma.status.findMany({
+    where: { id: { in: orderedIds }, userId },
+    select: { id: true },
+  });
+
+  if (ownedStatuses.length !== orderedIds.length) {
+    throw new Error("Unauthorized: some statuses don't belong to you");
+  }
+
   await Promise.all(
     orderedIds.map((id, index) =>
       prisma.status.update({
-        where: { id },
+        where: { id, userId },
         data: { order: index },
       })
     )
@@ -301,14 +329,14 @@ export async function reassignAndDeleteStatus(
     throw new Error("Cannot reassign to the same status");
   }
 
-  // Reassign all jobs
+  // Reassign all jobs (scoped to user's jobs only)
   await prisma.job.updateMany({
-    where: { statusId: fromStatusId },
+    where: { statusId: fromStatusId, userId: session.user.id },
     data: { statusId: toStatusId, status: toStatus.name },
   });
 
   // Now delete the empty status
-  await prisma.status.delete({ where: { id: fromStatusId } });
+  await prisma.status.deleteMany({ where: { id: fromStatusId, userId: session.user.id } });
 
   // Re-order remaining statuses
   const remaining = await prisma.status.findMany({

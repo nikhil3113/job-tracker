@@ -3,6 +3,85 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+
+// --- Validation Schemas ---
+
+const createJobSchema = z.object({
+  company: z.string().min(1, "Company is required").max(200).trim(),
+  title: z.string().min(1, "Title is required").max(200).trim(),
+  statusId: z.string().min(1, "Status is required"),
+  url: z
+    .string()
+    .max(2000)
+    .refine(
+      (val) => {
+        if (!val) return true;
+        try {
+          const parsed = new URL(val);
+          return ["http:", "https:"].includes(parsed.protocol);
+        } catch {
+          return false;
+        }
+      },
+      { message: "URL must be a valid http or https link" }
+    )
+    .optional()
+    .or(z.literal("")),
+  dateApplied: z
+    .string()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(new Date(val).getTime());
+      },
+      { message: "Invalid date" }
+    )
+    .optional(),
+});
+
+const updateJobSchema = z.object({
+  company: z.string().min(1).max(200).trim().optional(),
+  title: z.string().min(1).max(200).trim().optional(),
+  statusId: z.string().min(1).optional(),
+  url: z
+    .string()
+    .max(2000)
+    .refine(
+      (val) => {
+        if (!val) return true;
+        try {
+          const parsed = new URL(val);
+          return ["http:", "https:"].includes(parsed.protocol);
+        } catch {
+          return false;
+        }
+      },
+      { message: "URL must be a valid http or https link" }
+    )
+    .optional()
+    .or(z.literal("")),
+  dateApplied: z
+    .string()
+    .refine(
+      (val) => {
+        if (!val) return true;
+        return !isNaN(new Date(val).getTime());
+      },
+      { message: "Invalid date" }
+    )
+    .optional(),
+});
+
+const updateJobOrderSchema = z.array(
+  z.object({
+    id: z.string().min(1),
+    statusId: z.string().min(1),
+    order: z.number().int().min(0),
+  })
+);
+
+// --- Actions ---
 
 export async function getJobs() {
   const session = await auth();
@@ -18,7 +97,7 @@ export async function getJobs() {
   return jobs;
 }
 
-export async function createJob(data: {
+export async function createJob(input: {
   company: string;
   title: string;
   statusId: string;
@@ -29,6 +108,8 @@ export async function createJob(data: {
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
+
+  const data = createJobSchema.parse(input);
 
   // Look up the status to get its name
   const statusRecord = await prisma.status.findFirst({
@@ -66,7 +147,7 @@ export async function createJob(data: {
 
 export async function updateJob(
   id: string,
-  data: {
+  input: {
     company?: string;
     title?: string;
     statusId?: string;
@@ -78,6 +159,8 @@ export async function updateJob(
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
+
+  const data = updateJobSchema.parse(input);
 
   // Verify ownership
   const existing = await prisma.job.findFirst({
@@ -101,7 +184,7 @@ export async function updateJob(
   }
 
   const job = await prisma.job.update({
-    where: { id },
+    where: { id, userId: session.user.id },
     data: {
       ...(data.company !== undefined && { company: data.company }),
       ...(data.title !== undefined && { title: data.title }),
@@ -123,40 +206,57 @@ export async function deleteJob(id: string) {
     throw new Error("Unauthorized");
   }
 
-  // Verify ownership
-  const existing = await prisma.job.findFirst({
+  // Verify ownership and delete in one operation
+  const deleted = await prisma.job.deleteMany({
     where: { id, userId: session.user.id },
   });
 
-  if (!existing) {
+  if (deleted.count === 0) {
     throw new Error("Job not found");
   }
-
-  await prisma.job.delete({ where: { id } });
 
   revalidatePath("/dashboard");
 }
 
 export async function updateJobOrder(
-  jobs: { id: string; statusId: string; order: number }[]
+  input: { id: string; statusId: string; order: number }[]
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
 
-  // Look up all status names at once for the batch update
+  const userId = session.user.id;
+  const jobs = updateJobOrderSchema.parse(input);
+
+  // Verify all job IDs belong to the current user
+  const jobIds = jobs.map((j) => j.id);
+  const ownedJobs = await prisma.job.findMany({
+    where: { id: { in: jobIds }, userId },
+    select: { id: true },
+  });
+
+  if (ownedJobs.length !== jobIds.length) {
+    throw new Error("Unauthorized: some jobs don't belong to you");
+  }
+
+  // Verify all status IDs belong to the current user
   const statusIds = [...new Set(jobs.map((j) => j.statusId))];
   const statuses = await prisma.status.findMany({
-    where: { id: { in: statusIds }, userId: session.user.id },
+    where: { id: { in: statusIds }, userId },
   });
+
+  if (statuses.length !== statusIds.length) {
+    throw new Error("Unauthorized: invalid status");
+  }
+
   const statusMap = new Map(statuses.map((s) => [s.id, s.name]));
 
   // Batch update all jobs
   await Promise.all(
     jobs.map((job) =>
       prisma.job.update({
-        where: { id: job.id },
+        where: { id: job.id, userId },
         data: {
           statusId: job.statusId,
           status: statusMap.get(job.statusId) ?? "",
