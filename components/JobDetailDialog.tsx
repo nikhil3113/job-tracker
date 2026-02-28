@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -19,6 +20,8 @@ import {
   Calendar,
   ExternalLink,
 } from "lucide-react";
+import { format } from "date-fns";
+import ContactList from "./ContactList";
 
 interface JobDetailDialogProps {
   job: Job | null;
@@ -61,20 +64,20 @@ export default function JobDetailDialog({
   };
 
   // Show cached summary or freshly fetched one
-  const displaySummary = summary || job?.aiSummary;
+  const displaySummary =
+    summary || (job as Job & { aiSummary?: string | null })?.aiSummary;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5" />
-            AI Job Analysis
+            Job Details
           </DialogTitle>
           <DialogDescription>
             {job
               ? `${job.title} at ${job.company}`
-              : "Select a job to analyze"}
+              : "Select a job to view details"}
           </DialogDescription>
         </DialogHeader>
 
@@ -89,7 +92,7 @@ export default function JobDetailDialog({
               <div className="flex items-center gap-2 text-sm">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span>
-                  Applied {new Date(job.dateApplied).toLocaleDateString()}
+                  Applied {format(new Date(job.dateApplied), "MMM d, yyyy")}
                 </span>
               </div>
               {job.url && (
@@ -107,57 +110,75 @@ export default function JobDetailDialog({
               )}
             </div>
 
+            {/* Contacts Section */}
+            <ContactList jobId={job.id} />
+
+            <Separator />
+
             {/* AI Summary */}
-            {displaySummary ? (
-              <div className="rounded-md border bg-muted/50 p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
-                {displaySummary.split("\n").map((line: string, i: number) => {
-                  if (line.startsWith("## ")) {
+            <div>
+              <h4 className="text-sm font-medium flex items-center gap-1.5 mb-3">
+                <Brain className="h-4 w-4" />
+                AI Analysis
+              </h4>
+              {displaySummary ? (
+                <div className="rounded-md border bg-muted/50 p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                  {displaySummary.split("\n").map((line: string, i: number) => {
+                    if (line.startsWith("## ")) {
+                      return (
+                        <h3
+                          key={i}
+                          className="text-base font-semibold mt-4 mb-2 first:mt-0"
+                        >
+                          {line.replace("## ", "")}
+                        </h3>
+                      );
+                    }
+                    if (line.startsWith("- ")) {
+                      return (
+                        <li key={i} className="ml-4 list-disc">
+                          {line.replace("- ", "")}
+                        </li>
+                      );
+                    }
+                    if (line.trim() === "") {
+                      return <br key={i} />;
+                    }
                     return (
-                      <h3 key={i} className="text-base font-semibold mt-4 mb-2 first:mt-0">
-                        {line.replace("## ", "")}
-                      </h3>
+                      <p key={i} className="mb-1">
+                        {line}
+                      </p>
                     );
-                  }
-                  if (line.startsWith("- ")) {
-                    return (
-                      <li key={i} className="ml-4 list-disc">
-                        {line.replace("- ", "")}
-                      </li>
-                    );
-                  }
-                  if (line.trim() === "") {
-                    return <br key={i} />;
-                  }
-                  return <p key={i} className="mb-1">{line}</p>;
-                })}
-              </div>
-            ) : loading ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  Analyzing job listing...
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {job.url
-                    ? "Fetching and analyzing job description"
-                    : "Analyzing based on job title and company"}
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 gap-4">
-                <Brain className="h-12 w-12 text-muted-foreground/50" />
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-medium">No analysis yet</p>
+                  })}
+                </div>
+              ) : loading ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    Analyzing job listing...
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    Click below to generate an AI-powered analysis of this job
+                    {job.url
+                      ? "Fetching and analyzing job description"
+                      : "Analyzing based on job title and company"}
                   </p>
                 </div>
-                <Button onClick={handleAnalyze}>
-                  <Brain className="mr-2 h-4 w-4" />
-                  Analyze Job
-                </Button>
-              </div>
-            )}
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 gap-4">
+                  <Brain className="h-12 w-12 text-muted-foreground/50" />
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-medium">No analysis yet</p>
+                    <p className="text-xs text-muted-foreground">
+                      Click below to generate an AI-powered analysis of this job
+                    </p>
+                  </div>
+                  <Button onClick={handleAnalyze}>
+                    <Brain className="mr-2 h-4 w-4" />
+                    Analyze Job
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </DialogContent>

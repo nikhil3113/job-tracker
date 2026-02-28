@@ -38,6 +38,8 @@ const createJobSchema = z.object({
       { message: "Invalid date" }
     )
     .optional(),
+  notes: z.string().max(5000).optional().or(z.literal("")),
+  tags: z.array(z.string().max(50).trim()).max(10).optional(),
 });
 
 const updateJobSchema = z.object({
@@ -71,6 +73,8 @@ const updateJobSchema = z.object({
       { message: "Invalid date" }
     )
     .optional(),
+  notes: z.string().max(5000).optional().or(z.literal("")),
+  tags: z.array(z.string().max(50).trim()).max(10).optional(),
 });
 
 const updateJobOrderSchema = z.array(
@@ -103,6 +107,8 @@ export async function createJob(input: {
   statusId: string;
   url?: string;
   dateApplied?: string;
+  notes?: string;
+  tags?: string[];
 }) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -135,6 +141,8 @@ export async function createJob(input: {
       status: statusRecord.name,
       statusId: data.statusId,
       url: data.url || null,
+      notes: data.notes || null,
+      tags: data.tags?.filter((t) => t.trim()) ?? [],
       dateApplied: data.dateApplied ? new Date(data.dateApplied) : new Date(),
       order: newOrder,
       userId: session.user.id,
@@ -153,6 +161,8 @@ export async function updateJob(
     statusId?: string;
     url?: string;
     dateApplied?: string;
+    notes?: string;
+    tags?: string[];
   }
 ) {
   const session = await auth();
@@ -193,6 +203,8 @@ export async function updateJob(
       ...(data.dateApplied !== undefined && {
         dateApplied: new Date(data.dateApplied),
       }),
+      ...(data.notes !== undefined && { notes: data.notes || null }),
+      ...(data.tags !== undefined && { tags: data.tags.filter((t) => t.trim()) }),
     },
   });
 

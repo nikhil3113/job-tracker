@@ -12,7 +12,9 @@ import {
   Building2,
   TrendingUp,
   Calendar,
+  Clock,
 } from "lucide-react";
+import { differenceInDays, format } from "date-fns";
 import { toast } from "sonner";
 
 interface InsightsDashboardProps {
@@ -55,6 +57,12 @@ export default function InsightsDashboard({
   const applicationsThisMonth = jobs.filter(
     (j) => new Date(j.dateApplied) >= thisMonth
   ).length;
+
+  // Stale jobs: no updates in >7 days
+  const now = new Date();
+  const staleJobs = jobs.filter(
+    (j) => differenceInDays(now, new Date(j.updatedAt)) > 7
+  );
 
   const handleGenerateInsights = async () => {
     if (totalJobs === 0) {
@@ -153,6 +161,62 @@ export default function InsightsDashboard({
         </Card>
       </div>
 
+      {/* Needs Follow-up */}
+      {staleJobs.length > 0 && (
+        <Card className="border-amber-200 dark:border-amber-800">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Clock className="h-5 w-5 text-amber-500" />
+              Needs Follow-up
+            </CardTitle>
+            <span className="text-sm text-muted-foreground">
+              {staleJobs.length} stale application{staleJobs.length !== 1 ? "s" : ""}
+            </span>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground mb-3">
+              These applications haven&apos;t been updated in over a week. Consider following up or updating their status.
+            </p>
+            <div className="space-y-2">
+              {staleJobs
+                .sort((a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime())
+                .slice(0, 8)
+                .map((job) => {
+                  const days = differenceInDays(now, new Date(job.updatedAt));
+                  const isVeryStale = days > 14;
+                  return (
+                    <div
+                      key={job.id}
+                      className="flex items-center justify-between py-2 border-b last:border-0"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{job.title}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {job.company}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-xs font-medium ${
+                          isVeryStale
+                            ? "text-red-500"
+                            : "text-amber-500"
+                        }`}
+                      >
+                        {days}d ago
+                      </span>
+                    </div>
+                  );
+                })}
+              {staleJobs.length > 8 && (
+                <p className="text-xs text-muted-foreground text-center pt-1">
+                  ...and {staleJobs.length - 8} more
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Status Breakdown */}
       <Card>
         <CardHeader>
@@ -211,7 +275,7 @@ export default function InsightsDashboard({
                     </p>
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(job.dateApplied).toLocaleDateString()}
+                    {format(new Date(job.dateApplied), "MMM d, yyyy")}
                   </span>
                 </div>
               ))}

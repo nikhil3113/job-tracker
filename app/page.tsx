@@ -17,6 +17,11 @@ import {
   FileText,
   Brain,
   TrendingUp,
+  StickyNote,
+  Tags,
+  Clock,
+  Download,
+  Contact,
 } from "lucide-react";
 
 export default async function Home() {
@@ -236,6 +241,100 @@ export default async function Home() {
                     Get AI-powered analytics on your job search. Spot trends,
                     identify bottlenecks, and receive actionable suggestions to
                     improve.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Productivity Features */}
+            <div className="mt-16 text-center max-w-3xl mx-auto mb-10">
+              <Badge
+                variant="secondary"
+                className="mb-4 rounded-full px-4 py-1.5 text-sm font-medium"
+              >
+                Productivity
+              </Badge>
+              <h3 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Stay organized, never miss a beat
+              </h3>
+              <p className="text-muted-foreground mt-3">
+                Notes, tags, contacts, reminders, and exports to keep your job
+                search running smoothly.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 max-w-7xl mx-auto">
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center mb-3 text-indigo-600">
+                    <StickyNote className="h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-base">Notes</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Add private notes to any application. Track interview prep,
+                    feedback, and next steps.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="h-10 w-10 rounded-lg bg-teal-500/10 flex items-center justify-center mb-3 text-teal-600">
+                    <Tags className="h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-base">Tags & Labels</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Categorize jobs with custom tags. Filter and organize by
+                    role, tech stack, or priority.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3 text-amber-600">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-base">Stale Reminders</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Visual indicators for stale applications. Never forget to
+                    follow up on promising leads.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="h-10 w-10 rounded-lg bg-cyan-500/10 flex items-center justify-center mb-3 text-cyan-600">
+                    <Download className="h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-base">CSV Export</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Export all your applications to CSV. Perfect for
+                    record-keeping or sharing with a mentor.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="h-10 w-10 rounded-lg bg-pink-500/10 flex items-center justify-center mb-3 text-pink-600">
+                    <Contact className="h-5 w-5" />
+                  </div>
+                  <CardTitle className="text-base">Contact Tracker</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    Track recruiters, hiring managers, and referrals for each
+                    application. Your mini CRM.
                   </p>
                 </CardContent>
               </Card>

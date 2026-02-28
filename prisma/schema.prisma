@@ -21,6 +21,7 @@ model User {
   sessions Session[]
   jobs     Job[]
   statuses Status[]
+  contacts Contact[]
 }
 
 model Account {
@@ -85,13 +86,36 @@ model Job {
   url         String?
   notes       String?
   aiSummary   String?
+  tags        String[]
   order       Int      @default(0)
   userId      String   @db.ObjectId
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  statusRef  Status @relation(fields: [statusId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  statusRef  Status    @relation(fields: [statusId], references: [id])
+  contacts   Contact[]
 
   @@index([userId, statusId])
+}
+
+model Contact {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String?
+  phone     String?
+  role      String?  // "Recruiter", "Hiring Manager", "Referral", etc.
+  company   String?
+  linkedIn  String?
+  notes     String?
+  jobId     String?  @db.ObjectId
+  userId    String   @db.ObjectId
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job  Job?  @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([jobId])
 }

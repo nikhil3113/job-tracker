@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { Job, Status } from "@prisma/client";
 import { createJob, updateJob, deleteJob, updateJobOrder } from "@/actions/jobs";
+import { exportJobsCsv } from "@/actions/export";
 import { getColorByName } from "@/lib/status-colors";
 import KanbanColumn from "./KanbanColumn";
 import AddJobDialog from "./AddJobDialog";
@@ -12,7 +13,7 @@ import CoverLetterDialog from "./CoverLetterDialog";
 import JobDetailDialog from "./JobDetailDialog";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface KanbanBoardProps {
@@ -136,6 +137,7 @@ export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps)
     statusId: string;
     url?: string;
     dateApplied?: string;
+    tags?: string[];
   }) => {
     const newJob = await createJob(data);
     setJobs((prev) => [...prev, newJob]);
@@ -151,6 +153,8 @@ export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps)
       statusId?: string;
       url?: string;
       dateApplied?: string;
+      notes?: string;
+      tags?: string[];
     }
   ) => {
     const updatedJob = await updateJob(id, data);
@@ -194,6 +198,24 @@ export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps)
     );
   };
 
+  const handleExportCsv = async () => {
+    try {
+      const csv = await exportJobsCsv();
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `job-applications-${new Date().toISOString().split("T")[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success("CSV exported successfully");
+    } catch {
+      toast.error("Failed to export CSV");
+    }
+  };
+
   const colCount = statuses.length;
 
   return (
@@ -219,6 +241,10 @@ export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps)
             <div className="text-sm text-muted-foreground mr-2 hidden sm:block whitespace-nowrap">
               <span className="font-medium text-foreground">{jobs.length}</span> Jobs
             </div>
+            <Button variant="outline" onClick={handleExportCsv} disabled={jobs.length === 0}>
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
+            </Button>
             <Button onClick={() => setAddDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add Job

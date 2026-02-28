@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Job } from "@prisma/client";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInDays, format } from "date-fns";
 import {
   MoreHorizontal,
   Calendar,
@@ -22,7 +22,18 @@ import {
   Pencil,
   FileText,
   Brain,
+  StickyNote,
+  Clock,
+  Users,
 } from "lucide-react";
+
+// Extended job type to handle fields that may not be in the base Prisma type cache
+type JobWithExtras = Job & {
+  aiSummary?: string | null;
+  notes?: string | null;
+  tags?: string[];
+  _count?: { contacts?: number };
+};
 
 interface JobCardProps {
   job: Job;
@@ -41,11 +52,21 @@ export default function JobCard({
   onGenerateCoverLetter,
   onAnalyze,
 }: JobCardProps) {
+  const extJob = job as JobWithExtras;
+
   const dateText = formatDistanceToNow(new Date(job.dateApplied), {
     addSuffix: true,
   });
 
-  const hasAiSummary = !!(job as Job & { aiSummary?: string | null }).aiSummary;
+  const hasAiSummary = !!extJob.aiSummary;
+  const hasNotes = !!extJob.notes;
+  const tags = extJob.tags || [];
+  const contactCount = extJob._count?.contacts || 0;
+
+  // Stale calculation: >14 days since last update = red, >7 days = amber
+  const daysSinceUpdate = differenceInDays(new Date(), new Date(job.updatedAt));
+  const isVeryStale = daysSinceUpdate > 14;
+  const isStale = daysSinceUpdate > 7;
 
   return (
     <Draggable draggableId={job.id} index={index}>
@@ -61,7 +82,7 @@ export default function JobCard({
               snapshot.isDragging
                 ? "shadow-lg ring-2 ring-primary/20 rotate-2 opacity-90"
                 : "shadow-sm"
-            }`}
+            } ${isVeryStale ? "border-red-300 dark:border-red-800" : isStale ? "border-amber-300 dark:border-amber-800" : ""}`}
           >
             <CardContent className="p-4">
               <div className="flex items-start justify-between gap-2">
@@ -106,6 +127,10 @@ export default function JobCard({
                       </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onAnalyze(job)}>
+                      <Users className="mr-2 h-4 w-4" />
+                      Contacts
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onGenerateCoverLetter(job)}>
                       <FileText className="mr-2 h-4 w-4" />
                       Generate Cover Letter
@@ -126,12 +151,52 @@ export default function JobCard({
                 </DropdownMenu>
               </div>
 
-              <div className="mt-4 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title={new Date(job.dateApplied).toLocaleDateString()}>
+              {/* Tags */}
+              {tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {tags.slice(0, 3).map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="px-1.5 py-0 h-5 font-normal text-[10px]"
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                  {tags.length > 3 && (
+                    <Badge
+                      variant="outline"
+                      className="px-1.5 py-0 h-5 font-normal text-[10px]"
+                    >
+                      +{tags.length - 3}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title={format(new Date(job.dateApplied), "MMM d, yyyy")}>
                   <Calendar className="h-3 w-3" />
                   <span>{dateText}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
+                  {isStale && (
+                    <span title={`No updates in ${daysSinceUpdate} days`}>
+                      <Clock
+                        className={`h-3.5 w-3.5 ${isVeryStale ? "text-red-500" : "text-amber-500"}`}
+                      />
+                    </span>
+                  )}
+                  {hasNotes && (
+                    <span title="Has notes">
+                      <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                    </span>
+                  )}
+                  {contactCount > 0 && (
+                    <span title={`${contactCount} contact(s)`}>
+                      <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                    </span>
+                  )}
                   {hasAiSummary && (
                     <Badge variant="secondary" className="px-1.5 py-0 h-5 font-normal text-[10px] gap-1">
                       <Brain className="h-2.5 w-2.5" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, KeyboardEvent } from "react";
 import { Job, Status } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { X } from "lucide-react";
 
 interface EditJobDialogProps {
   job: Job | null;
@@ -33,6 +36,8 @@ interface EditJobDialogProps {
       statusId?: string;
       url?: string;
       dateApplied?: string;
+      notes?: string;
+      tags?: string[];
     }
   ) => Promise<void>;
   statuses: Status[];
@@ -51,6 +56,9 @@ export default function EditJobDialog({
   const [statusId, setStatusId] = useState("");
   const [url, setUrl] = useState("");
   const [dateApplied, setDateApplied] = useState("");
+  const [notes, setNotes] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
 
   useEffect(() => {
     if (job) {
@@ -59,8 +67,32 @@ export default function EditJobDialog({
       setStatusId(job.statusId);
       setUrl(job.url || "");
       setDateApplied(new Date(job.dateApplied).toISOString().split("T")[0]);
+      setNotes((job as Job & { notes?: string | null }).notes || "");
+      setTags((job as Job & { tags?: string[] }).tags || []);
+      setTagInput("");
     }
   }, [job]);
+
+  const handleAddTag = () => {
+    const trimmed = tagInput.trim();
+    if (trimmed && !tags.includes(trimmed) && tags.length < 10) {
+      setTags([...tags, trimmed]);
+      setTagInput("");
+    }
+  };
+
+  const handleTagKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddTag();
+    } else if (e.key === "Backspace" && !tagInput && tags.length > 0) {
+      setTags(tags.slice(0, -1));
+    }
+  };
+
+  const removeTag = (tag: string) => {
+    setTags(tags.filter((t) => t !== tag));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +105,8 @@ export default function EditJobDialog({
         statusId,
         url: url || undefined,
         dateApplied,
+        notes,
+        tags,
       });
       onOpenChange(false);
     } catch (error) {
@@ -84,7 +118,7 @@ export default function EditJobDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Job</DialogTitle>
           <DialogDescription>
@@ -144,6 +178,46 @@ export default function EditJobDialog({
               onChange={(e) => setDateApplied(e.target.value)}
               required
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-tags">Tags (optional)</Label>
+            <div className="flex flex-wrap gap-1.5 mb-1.5">
+              {tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="gap-1 pr-1">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="ml-0.5 rounded-full hover:bg-muted-foreground/20 p-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </Badge>
+              ))}
+            </div>
+            <Input
+              id="edit-tags"
+              placeholder={tags.length >= 10 ? "Max 10 tags" : "Type a tag and press Enter"}
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleTagKeyDown}
+              onBlur={handleAddTag}
+              disabled={tags.length >= 10}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="edit-notes">Notes (optional)</Label>
+            <Textarea
+              id="edit-notes"
+              placeholder="Add any notes about this application..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              maxLength={5000}
+            />
+            <p className="text-xs text-muted-foreground text-right">
+              {notes.length}/5000
+            </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
