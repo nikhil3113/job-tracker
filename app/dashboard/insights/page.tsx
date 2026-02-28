@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import InsightsDashboard from "@/components/InsightsDashboard";
 import { getStatuses } from "@/actions/statuses";
+import Navbar from "@/components/Navbar";
 
 export default async function InsightsPage() {
   const session = await auth();
@@ -19,5 +20,10 @@ export default async function InsightsPage() {
     getStatuses(),
   ]);
 
-  return <InsightsDashboard jobs={jobs} statuses={statuses} />;
+  return (
+    <>
+      <Navbar />
+      <InsightsDashboard jobs={jobs} statuses={statuses} />
+    </>
+      );
 }
