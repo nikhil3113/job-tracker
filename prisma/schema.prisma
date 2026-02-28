@@ -83,6 +83,8 @@ model Job {
   statusId    String   @db.ObjectId
   dateApplied DateTime @default(now())
   url         String?
+  notes       String?
+  aiSummary   String?
   order       Int      @default(0)
   userId      String   @db.ObjectId
   createdAt   DateTime @default(now())

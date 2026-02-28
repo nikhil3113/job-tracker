@@ -14,6 +14,9 @@ import {
   Users,
   Briefcase,
   Settings,
+  FileText,
+  Brain,
+  TrendingUp,
 } from "lucide-react";
 
 export default async function Home() {
@@ -166,6 +169,73 @@ export default async function Home() {
                     Create your own job statuses. From &quot;Phone Screen&quot;
                     to &quot;On-site&quot;, customize columns to match your
                     process.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* AI-Powered Features */}
+            <div className="mt-16 text-center max-w-3xl mx-auto mb-10">
+              <Badge
+                variant="secondary"
+                className="mb-4 rounded-full px-4 py-1.5 text-sm font-medium"
+              >
+                AI-Powered
+              </Badge>
+              <h3 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Supercharge your search with AI
+              </h3>
+              <p className="text-muted-foreground mt-3">
+                Leverage Gemini AI to generate cover letters, analyze job
+                listings, and get personalized insights.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4 text-emerald-600">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <CardTitle>Cover Letter Generator</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Generate tailored cover letters in seconds. Just describe
+                    your skills and let AI craft a compelling letter for each
+                    role.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-lg bg-rose-500/10 flex items-center justify-center mb-4 text-rose-600">
+                    <Brain className="h-6 w-6" />
+                  </div>
+                  <CardTitle>AI Job Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Instantly analyze any job listing. Get a structured breakdown
+                    of requirements, tech stack, salary range, and experience
+                    level.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-lg bg-sky-500/10 flex items-center justify-center mb-4 text-sky-600">
+                    <TrendingUp className="h-6 w-6" />
+                  </div>
+                  <CardTitle>Smart Insights</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Get AI-powered analytics on your job search. Spot trends,
+                    identify bottlenecks, and receive actionable suggestions to
+                    improve.
                   </p>
                 </CardContent>
               </Card>

@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Settings } from "lucide-react";
+import { Settings, Brain } from "lucide-react";
 
 export default function Navbar() {
   const { data: session } = useSession();
@@ -49,6 +49,12 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/insights" className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">Insights</span>
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
             <Link href="/dashboard/settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Settings</span>
@@ -78,6 +84,12 @@ export default function Navbar() {
                 </div>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/dashboard/insights">
+                  <Brain className="mr-2 h-4 w-4" />
+                  Insights
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/dashboard/settings">
                   <Settings className="mr-2 h-4 w-4" />

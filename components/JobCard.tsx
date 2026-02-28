@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Job } from "@prisma/client";
@@ -19,6 +20,8 @@ import {
   Building2,
   Trash2,
   Pencil,
+  FileText,
+  Brain,
 } from "lucide-react";
 
 interface JobCardProps {
@@ -26,6 +29,8 @@ interface JobCardProps {
   index: number;
   onEdit: (job: Job) => void;
   onDelete: (id: string) => void;
+  onGenerateCoverLetter: (job: Job) => void;
+  onAnalyze: (job: Job) => void;
 }
 
 export default function JobCard({
@@ -33,10 +38,14 @@ export default function JobCard({
   index,
   onEdit,
   onDelete,
+  onGenerateCoverLetter,
+  onAnalyze,
 }: JobCardProps) {
   const dateText = formatDistanceToNow(new Date(job.dateApplied), {
     addSuffix: true,
   });
+
+  const hasAiSummary = !!(job as Job & { aiSummary?: string | null }).aiSummary;
 
   return (
     <Draggable draggableId={job.id} index={index}>
@@ -96,6 +105,16 @@ export default function JobCard({
                         </a>
                       </DropdownMenuItem>
                     )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => onGenerateCoverLetter(job)}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Generate Cover Letter
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onAnalyze(job)}>
+                      <Brain className="mr-2 h-4 w-4" />
+                      AI Analyze
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
                       onClick={() => onDelete(job.id)}
@@ -112,11 +131,19 @@ export default function JobCard({
                   <Calendar className="h-3 w-3" />
                   <span>{dateText}</span>
                 </div>
-                {job.url && (
-                  <Badge variant="secondary" className="px-1.5 py-0 h-5 font-normal text-[10px]">
-                    Linked
-                  </Badge>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {hasAiSummary && (
+                    <Badge variant="secondary" className="px-1.5 py-0 h-5 font-normal text-[10px] gap-1">
+                      <Brain className="h-2.5 w-2.5" />
+                      AI
+                    </Badge>
+                  )}
+                  {job.url && (
+                    <Badge variant="secondary" className="px-1.5 py-0 h-5 font-normal text-[10px]">
+                      Linked
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

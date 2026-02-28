@@ -14,6 +14,8 @@ interface KanbanColumnProps {
   jobs: Job[];
   onEdit: (job: Job) => void;
   onDelete: (id: string) => void;
+  onGenerateCoverLetter: (job: Job) => void;
+  onAnalyze: (job: Job) => void;
 }
 
 export default function KanbanColumn({
@@ -23,6 +25,8 @@ export default function KanbanColumn({
   jobs,
   onEdit,
   onDelete,
+  onGenerateCoverLetter,
+  onAnalyze,
 }: KanbanColumnProps) {
   return (
     <div className="flex w-full flex-col rounded-xl border bg-card/50 shadow-sm h-full max-h-[calc(100vh-14rem)]">
@@ -65,6 +69,8 @@ export default function KanbanColumn({
                   index={index}
                   onEdit={onEdit}
                   onDelete={onDelete}
+                  onGenerateCoverLetter={onGenerateCoverLetter}
+                  onAnalyze={onAnalyze}
                 />
               ))}
               {provided.placeholder}

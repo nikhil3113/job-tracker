@@ -8,6 +8,8 @@ import { getColorByName } from "@/lib/status-colors";
 import KanbanColumn from "./KanbanColumn";
 import AddJobDialog from "./AddJobDialog";
 import EditJobDialog from "./EditJobDialog";
+import CoverLetterDialog from "./CoverLetterDialog";
+import JobDetailDialog from "./JobDetailDialog";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
@@ -24,6 +26,12 @@ export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps)
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+
+  // AI dialog states
+  const [coverLetterJob, setCoverLetterJob] = useState<Job | null>(null);
+  const [coverLetterOpen, setCoverLetterOpen] = useState(false);
+  const [detailJob, setDetailJob] = useState<Job | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const getJobsByStatusId = useCallback(
     (statusId: string) => {
@@ -165,6 +173,27 @@ export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps)
     setEditDialogOpen(true);
   };
 
+  const handleGenerateCoverLetter = (job: Job) => {
+    setCoverLetterJob(job);
+    setCoverLetterOpen(true);
+  };
+
+  const handleAnalyze = (job: Job) => {
+    setDetailJob(job);
+    setDetailOpen(true);
+  };
+
+  const handleJobAnalyzed = (jobId: string, summary: string) => {
+    // Update local state so the AI badge appears immediately
+    setJobs((prev) =>
+      prev.map((j) =>
+        j.id === jobId
+          ? { ...j, aiSummary: summary } as Job
+          : j
+      )
+    );
+  };
+
   const colCount = statuses.length;
 
   return (
@@ -217,6 +246,8 @@ export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps)
                   jobs={getJobsByStatusId(s.id)}
                   onEdit={handleEdit}
                   onDelete={handleDeleteJob}
+                  onGenerateCoverLetter={handleGenerateCoverLetter}
+                  onAnalyze={handleAnalyze}
                 />
               );
             })}
@@ -237,6 +268,19 @@ export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps)
         onOpenChange={setEditDialogOpen}
         onUpdate={handleUpdateJob}
         statuses={statuses}
+      />
+
+      <CoverLetterDialog
+        job={coverLetterJob}
+        open={coverLetterOpen}
+        onOpenChange={setCoverLetterOpen}
+      />
+
+      <JobDetailDialog
+        job={detailJob}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        onAnalyzed={handleJobAnalyzed}
       />
     </div>
   );
