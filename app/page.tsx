@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Users,
   Briefcase,
+  Settings,
 } from "lucide-react";
 
 export default async function Home() {
@@ -44,8 +45,9 @@ export default async function Home() {
                 </span>
               </h1>
               <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-                Stop using messy spreadsheets.                 Track every job application from &quot;Applied&quot; to &quot;Offer&quot; with our intuitive, drag-and-drop Kanban
-                board.
+                Stop using messy spreadsheets. Track every job application from
+                &quot;Applied&quot; to &quot;Offer&quot; with our intuitive,
+                drag-and-drop Kanban board.
               </p>
               <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:justify-center">
                 <Button asChild size="lg" className="h-12 px-8 text-base">
@@ -106,7 +108,7 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
               <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 text-primary">
@@ -148,6 +150,22 @@ export default async function Home() {
                   <p className="text-muted-foreground">
                     Keep a record of when you applied. Never forget when to
                     follow up or how long an application has been stagnant.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-background border-none shadow-md hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="h-12 w-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4 text-purple-600">
+                    <Settings className="h-6 w-6" />
+                  </div>
+                  <CardTitle>Custom Workflow</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Create your own job statuses. From &quot;Phone Screen&quot;
+                    to &quot;On-site&quot;, customize columns to match your
+                    process.
                   </p>
                 </CardContent>
               </Card>

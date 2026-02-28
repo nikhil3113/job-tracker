@@ -2,8 +2,9 @@
 
 import { useState, useCallback } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
-import { Job, JobStatus } from "@prisma/client";
+import { Job, Status } from "@prisma/client";
 import { createJob, updateJob, deleteJob, updateJobOrder } from "@/actions/jobs";
+import { getColorByName } from "@/lib/status-colors";
 import KanbanColumn from "./KanbanColumn";
 import AddJobDialog from "./AddJobDialog";
 import EditJobDialog from "./EditJobDialog";
@@ -12,23 +13,22 @@ import { Input } from "@/components/ui/input";
 import { Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const STATUSES: JobStatus[] = ["APPLIED", "INTERVIEW", "OFFER", "REJECTED"];
-
 interface KanbanBoardProps {
   initialJobs: Job[];
+  statuses: Status[];
 }
 
-export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
+export default function KanbanBoard({ initialJobs, statuses }: KanbanBoardProps) {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [searchQuery, setSearchQuery] = useState("");
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
 
-  const getJobsByStatus = useCallback(
-    (status: JobStatus) => {
+  const getJobsByStatusId = useCallback(
+    (statusId: string) => {
       return jobs
-        .filter((job) => job.status === status)
+        .filter((job) => job.statusId === statusId)
         .filter((job) => {
           if (!searchQuery) return true;
           const query = searchQuery.toLowerCase();
@@ -54,15 +54,15 @@ export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
       return;
     }
 
-    const sourceStatus = source.droppableId as JobStatus;
-    const destStatus = destination.droppableId as JobStatus;
+    const sourceStatusId = source.droppableId;
+    const destStatusId = destination.droppableId;
 
     // Get current columns
-    const sourceJobs = getJobsByStatus(sourceStatus);
+    const sourceJobs = getJobsByStatusId(sourceStatusId);
     const destJobs =
-      sourceStatus === destStatus
+      sourceStatusId === destStatusId
         ? sourceJobs
-        : getJobsByStatus(destStatus);
+        : getJobsByStatusId(destStatusId);
 
     // Find the dragged job
     const draggedJob = jobs.find((j) => j.id === draggableId);
@@ -72,10 +72,10 @@ export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
     const newSourceJobs = sourceJobs.filter((j) => j.id !== draggableId);
 
     // Insert at destination
-    const updatedDraggedJob = { ...draggedJob, status: destStatus };
+    const updatedDraggedJob = { ...draggedJob, statusId: destStatusId };
     let newDestJobs: Job[];
 
-    if (sourceStatus === destStatus) {
+    if (sourceStatusId === destStatusId) {
       newDestJobs = newSourceJobs;
       newDestJobs.splice(destination.index, 0, updatedDraggedJob);
     } else {
@@ -84,19 +84,19 @@ export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
     }
 
     // Assign new order values
-    const updatedJobs: { id: string; status: JobStatus; order: number }[] = [];
+    const updatedJobs: { id: string; statusId: string; order: number }[] = [];
 
     newSourceJobs.forEach((job, idx) => {
-      updatedJobs.push({ id: job.id, status: sourceStatus, order: idx });
+      updatedJobs.push({ id: job.id, statusId: sourceStatusId, order: idx });
     });
 
-    if (sourceStatus !== destStatus) {
+    if (sourceStatusId !== destStatusId) {
       newDestJobs.forEach((job, idx) => {
-        updatedJobs.push({ id: job.id, status: destStatus, order: idx });
+        updatedJobs.push({ id: job.id, statusId: destStatusId, order: idx });
       });
     } else {
       newDestJobs.forEach((job, idx) => {
-        updatedJobs.push({ id: job.id, status: destStatus, order: idx });
+        updatedJobs.push({ id: job.id, statusId: destStatusId, order: idx });
       });
     }
 
@@ -106,7 +106,7 @@ export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
       updatedJobs.forEach((uj) => {
         const idx = updated.findIndex((j) => j.id === uj.id);
         if (idx !== -1) {
-          updated[idx] = { ...updated[idx], status: uj.status, order: uj.order };
+          updated[idx] = { ...updated[idx], statusId: uj.statusId, order: uj.order };
         }
       });
       return updated;
@@ -125,7 +125,7 @@ export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
   const handleAddJob = async (data: {
     company: string;
     title: string;
-    status: JobStatus;
+    statusId: string;
     url?: string;
     dateApplied?: string;
   }) => {
@@ -140,7 +140,7 @@ export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
     data: {
       company?: string;
       title?: string;
-      status?: JobStatus;
+      statusId?: string;
       url?: string;
       dateApplied?: string;
     }
@@ -164,6 +164,8 @@ export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
     setEditingJob(job);
     setEditDialogOpen(true);
   };
+
+  const colCount = statuses.length;
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -197,32 +199,44 @@ export default function KanbanBoard({ initialJobs }: KanbanBoardProps) {
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex-1 overflow-x-auto overflow-y-hidden pb-4">
-           <div className="flex gap-6 h-full min-w-[1000px] lg:min-w-0 lg:grid lg:grid-cols-4">
-            {STATUSES.map((status) => (
-              <KanbanColumn
-                key={status}
-                status={status}
-                jobs={getJobsByStatus(status)}
-                onEdit={handleEdit}
-                onDelete={handleDeleteJob}
-              />
-            ))}
+        <div className="flex-1 pb-4 h-full">
+          <div
+            className="flex flex-col lg:grid gap-6 h-full"
+            style={{
+              gridTemplateColumns: `repeat(${colCount}, 1fr)`,
+            }}
+          >
+            {statuses.map((s) => {
+              const colorConfig = getColorByName(s.color);
+              return (
+                <KanbanColumn
+                  key={s.id}
+                  statusId={s.id}
+                  label={s.label}
+                  colorConfig={colorConfig}
+                  jobs={getJobsByStatusId(s.id)}
+                  onEdit={handleEdit}
+                  onDelete={handleDeleteJob}
+                />
+              );
+            })}
           </div>
         </div>
       </DragDropContext>
 
-      <AddJobDialog 
-        open={addDialogOpen} 
-        onOpenChange={setAddDialogOpen} 
-        onAdd={handleAddJob} 
+      <AddJobDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onAdd={handleAddJob}
+        statuses={statuses}
       />
-      
+
       <EditJobDialog
         job={editingJob}
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         onUpdate={handleUpdateJob}
+        statuses={statuses}
       />
     </div>
   );

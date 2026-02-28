@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Job, JobStatus } from "@prisma/client";
+import { Job, Status } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,11 +30,12 @@ interface EditJobDialogProps {
     data: {
       company?: string;
       title?: string;
-      status?: JobStatus;
+      statusId?: string;
       url?: string;
       dateApplied?: string;
     }
   ) => Promise<void>;
+  statuses: Status[];
 }
 
 export default function EditJobDialog({
@@ -42,11 +43,12 @@ export default function EditJobDialog({
   open,
   onOpenChange,
   onUpdate,
+  statuses,
 }: EditJobDialogProps) {
   const [loading, setLoading] = useState(false);
   const [company, setCompany] = useState("");
   const [title, setTitle] = useState("");
-  const [status, setStatus] = useState<JobStatus>("APPLIED");
+  const [statusId, setStatusId] = useState("");
   const [url, setUrl] = useState("");
   const [dateApplied, setDateApplied] = useState("");
 
@@ -54,7 +56,7 @@ export default function EditJobDialog({
     if (job) {
       setCompany(job.company);
       setTitle(job.title);
-      setStatus(job.status);
+      setStatusId(job.statusId);
       setUrl(job.url || "");
       setDateApplied(new Date(job.dateApplied).toISOString().split("T")[0]);
     }
@@ -68,7 +70,7 @@ export default function EditJobDialog({
       await onUpdate(job.id, {
         company,
         title,
-        status,
+        statusId,
         url: url || undefined,
         dateApplied,
       });
@@ -110,15 +112,16 @@ export default function EditJobDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="edit-status">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as JobStatus)}>
+            <Select value={statusId} onValueChange={setStatusId}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="APPLIED">Applied</SelectItem>
-                <SelectItem value="INTERVIEW">Interview</SelectItem>
-                <SelectItem value="OFFER">Offer</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
+                {statuses.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

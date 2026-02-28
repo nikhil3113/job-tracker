@@ -2,7 +2,6 @@
 
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { JobStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function getJobs() {
@@ -22,7 +21,7 @@ export async function getJobs() {
 export async function createJob(data: {
   company: string;
   title: string;
-  status: JobStatus;
+  statusId: string;
   url?: string;
   dateApplied?: string;
 }) {
@@ -31,9 +30,18 @@ export async function createJob(data: {
     throw new Error("Unauthorized");
   }
 
+  // Look up the status to get its name
+  const statusRecord = await prisma.status.findFirst({
+    where: { id: data.statusId, userId: session.user.id },
+  });
+
+  if (!statusRecord) {
+    throw new Error("Invalid status");
+  }
+
   // Get the max order for the target status column
   const maxOrderJob = await prisma.job.findFirst({
-    where: { userId: session.user.id, status: data.status },
+    where: { userId: session.user.id, statusId: data.statusId },
     orderBy: { order: "desc" },
   });
 
@@ -43,7 +51,8 @@ export async function createJob(data: {
     data: {
       company: data.company,
       title: data.title,
-      status: data.status,
+      status: statusRecord.name,
+      statusId: data.statusId,
       url: data.url || null,
       dateApplied: data.dateApplied ? new Date(data.dateApplied) : new Date(),
       order: newOrder,
@@ -60,7 +69,7 @@ export async function updateJob(
   data: {
     company?: string;
     title?: string;
-    status?: JobStatus;
+    statusId?: string;
     url?: string;
     dateApplied?: string;
   }
@@ -79,12 +88,24 @@ export async function updateJob(
     throw new Error("Job not found");
   }
 
+  // If status is changing, look up the new status name
+  let statusFields: { status?: string; statusId?: string } = {};
+  if (data.statusId !== undefined) {
+    const statusRecord = await prisma.status.findFirst({
+      where: { id: data.statusId, userId: session.user.id },
+    });
+    if (!statusRecord) {
+      throw new Error("Invalid status");
+    }
+    statusFields = { status: statusRecord.name, statusId: data.statusId };
+  }
+
   const job = await prisma.job.update({
     where: { id },
     data: {
       ...(data.company !== undefined && { company: data.company }),
       ...(data.title !== undefined && { title: data.title }),
-      ...(data.status !== undefined && { status: data.status }),
+      ...statusFields,
       ...(data.url !== undefined && { url: data.url || null }),
       ...(data.dateApplied !== undefined && {
         dateApplied: new Date(data.dateApplied),
@@ -117,19 +138,30 @@ export async function deleteJob(id: string) {
 }
 
 export async function updateJobOrder(
-  jobs: { id: string; status: JobStatus; order: number }[]
+  jobs: { id: string; statusId: string; order: number }[]
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     throw new Error("Unauthorized");
   }
 
+  // Look up all status names at once for the batch update
+  const statusIds = [...new Set(jobs.map((j) => j.statusId))];
+  const statuses = await prisma.status.findMany({
+    where: { id: { in: statusIds }, userId: session.user.id },
+  });
+  const statusMap = new Map(statuses.map((s) => [s.id, s.name]));
+
   // Batch update all jobs
   await Promise.all(
     jobs.map((job) =>
       prisma.job.update({
         where: { id: job.id },
-        data: { status: job.status, order: job.order },
+        data: {
+          statusId: job.statusId,
+          status: statusMap.get(job.statusId) ?? "",
+          order: job.order,
+        },
       })
     )
   );

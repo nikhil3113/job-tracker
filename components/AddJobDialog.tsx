@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { JobStatus } from "@prisma/client";
+import { Status } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,17 +27,18 @@ interface AddJobDialogProps {
   onAdd: (data: {
     company: string;
     title: string;
-    status: JobStatus;
+    statusId: string;
     url?: string;
     dateApplied?: string;
   }) => Promise<void>;
+  statuses: Status[];
 }
 
-export default function AddJobDialog({ open, onOpenChange, onAdd }: AddJobDialogProps) {
+export default function AddJobDialog({ open, onOpenChange, onAdd, statuses }: AddJobDialogProps) {
   const [loading, setLoading] = useState(false);
   const [company, setCompany] = useState("");
   const [title, setTitle] = useState("");
-  const [status, setStatus] = useState<JobStatus>("APPLIED");
+  const [statusId, setStatusId] = useState(statuses[0]?.id ?? "");
   const [url, setUrl] = useState("");
   const [dateApplied, setDateApplied] = useState(
     new Date().toISOString().split("T")[0]
@@ -46,7 +47,7 @@ export default function AddJobDialog({ open, onOpenChange, onAdd }: AddJobDialog
   const resetForm = () => {
     setCompany("");
     setTitle("");
-    setStatus("APPLIED");
+    setStatusId(statuses[0]?.id ?? "");
     setUrl("");
     setDateApplied(new Date().toISOString().split("T")[0]);
   };
@@ -55,7 +56,7 @@ export default function AddJobDialog({ open, onOpenChange, onAdd }: AddJobDialog
     e.preventDefault();
     setLoading(true);
     try {
-      await onAdd({ company, title, status, url: url || undefined, dateApplied });
+      await onAdd({ company, title, statusId, url: url || undefined, dateApplied });
       resetForm();
     } catch (error) {
       console.error("Failed to add job:", error);
@@ -96,15 +97,16 @@ export default function AddJobDialog({ open, onOpenChange, onAdd }: AddJobDialog
           </div>
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as JobStatus)}>
+            <Select value={statusId} onValueChange={setStatusId}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="APPLIED">Applied</SelectItem>
-                <SelectItem value="INTERVIEW">Interview</SelectItem>
-                <SelectItem value="OFFER">Offer</SelectItem>
-                <SelectItem value="REJECTED">Rejected</SelectItem>
+                {statuses.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
