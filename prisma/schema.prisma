@@ -63,8 +63,8 @@ model VerificationToken {
 
 model Status {
   id     String @id @default(auto()) @map("_id") @db.ObjectId
-  name   String // e.g. "APPLIED", "PHONE_SCREEN"
-  label  String // e.g. "Applied", "Phone Screen"
+  name   String 
+  label  String 
   color  String // palette color name, e.g. "blue", "amber"
   order  Int    // column display order (0, 1, 2, ...)
   userId String @db.ObjectId
