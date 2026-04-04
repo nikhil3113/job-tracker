@@ -23,7 +23,9 @@ export default async function InsightsPage() {
   return (
     <>
       <Navbar />
-      <InsightsDashboard jobs={jobs} statuses={statuses} />
+      <div className="px-5 md:px-10">
+        <InsightsDashboard jobs={jobs} statuses={statuses} />
+      </div>
     </>
-      );
+  );
 }
